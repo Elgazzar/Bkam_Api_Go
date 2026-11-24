@@ -1,0 +1,32 @@
+version: '3'
+
+services:
+  api:
+    image: ghcr.io/elgazzar/bkam-api:arm64
+    pull_policy: always
+    container_name: bkam-api
+    restart: always
+    ports:
+      - "3001:3001"
+    volumes:
+      # Absolute path bind mount so Portainer can locate credentials on the VM host disk
+      - /home/ubuntu/egp-api/firebase-service-account.json:/app/firebase-service-account.json
+      # Persistent cache directories so flat-cache and history store survive container redeployments
+      - /home/ubuntu/egp-api/var:/app/var
+      - /home/ubuntu/egp-api/cache:/app/.cache
+    environment:
+      - PORT=3001
+      - GOOGLE_CLOUD_PROJECT=bekamfeelbank
+      - GOOGLE_APPLICATION_CREDENTIALS=/app/firebase-service-account.json
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    networks:
+      - app-net
+
+networks:
+  app-net:
+    external: true
+    name: app-net

@@ -1,0 +1,13 @@
+node_modules
+dist
+var
+screenshots
+.env
+.env*
+*.log
+.git
+tests
+.cache
+.vitest
+.e2e
+coverage

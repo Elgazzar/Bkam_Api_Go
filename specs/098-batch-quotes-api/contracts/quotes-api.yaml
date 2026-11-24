@@ -1,0 +1,219 @@
+openapi: 3.0.3
+info:
+  title: Bekam Fe El Bank Batch Quotes API
+  description: Stateless batch endpoint (BFF pattern) to fetch multi-domain quotes for user favorites in a single round-trip.
+  version: 1.0.0
+paths:
+  /v1/quotes:
+    post:
+      summary: Fetch batch quotes via JSON payload
+      operationId: getBatchQuotesPost
+      tags:
+        - Quotes
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BatchQuoteRequestBody'
+      responses:
+        '200':
+          description: Successfully retrieved batch quotes
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BatchQuoteResponse'
+        '400':
+          description: Invalid request payload or exceeding batch size limit
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized - missing or invalid API key
+
+    get:
+      summary: Fetch batch quotes via query parameter
+      operationId: getBatchQuotesGet
+      tags:
+        - Quotes
+      parameters:
+        - name: items
+          in: query
+          required: true
+          description: Comma-separated list of asset identifiers (e.g. CBE_USD,21k,EGX30,COMI)
+          schema:
+            type: string
+            example: "CBE_USD,21k,EGX30,COMI,1120"
+      responses:
+        '200':
+          description: Successfully retrieved batch quotes
+          headers:
+            ETag:
+              schema:
+                type: string
+            Cache-Control:
+              schema:
+                type: string
+                example: "public, max-age=15"
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BatchQuoteResponse'
+        '400':
+          description: Missing or invalid items query parameter
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized - missing or invalid API key
+
+components:
+  schemas:
+    BatchQuoteRequestBody:
+      type: object
+      required:
+        - items
+      properties:
+        items:
+          type: array
+          minItems: 1
+          maxItems: 100
+          items:
+            type: string
+            minLength: 1
+            maxLength: 50
+          example:
+            - "CBE_USD"
+            - "MISR_EUR"
+            - "21k"
+            - "pound"
+            - "EGX30"
+            - "COMI"
+            - "1120"
+
+    BatchQuoteResponse:
+      type: object
+      required:
+        - quotes
+        - unresolved
+        - timestamp
+      properties:
+        quotes:
+          type: object
+          additionalProperties:
+            $ref: '#/components/schemas/QuoteItem'
+          example:
+            CBE_USD:
+              id: "CBE_USD"
+              category: "currency"
+              name: "Central Bank of Egypt - US Dollar"
+              price: 48.95
+              buyPrice: 48.85
+              sellPrice: 48.95
+              change: 0.10
+              changePercent: 0.20
+              currency: "EGP"
+              updatedAt: "2026-10-31T10:00:00.000Z"
+            "21k":
+              id: "21k"
+              category: "gold"
+              name: "21K Gold"
+              price: 3750
+              buyPrice: 3740
+              sellPrice: 3750
+              change: 15
+              changePercent: 0.40
+              currency: "EGP"
+              updatedAt: "2026-10-31T10:00:00.000Z"
+            EGX30:
+              id: "EGX30"
+              category: "index"
+              name: "EGX30"
+              price: 30500.25
+              buyPrice: null
+              sellPrice: null
+              change: 120.50
+              changePercent: 0.40
+              currency: "EGP"
+              updatedAt: "2026-10-31T10:00:00.000Z"
+            COMI:
+              id: "COMI"
+              category: "stock"
+              name: "Commercial International Bank"
+              price: 88.50
+              buyPrice: 88.40
+              sellPrice: 88.50
+              change: -0.50
+              changePercent: -0.56
+              currency: "EGP"
+              updatedAt: "2026-10-31T10:00:00.000Z"
+        unresolved:
+          type: array
+          items:
+            type: string
+          example:
+            - "INVALID_ID_XYZ"
+        timestamp:
+          type: string
+          format: date-time
+          example: "2026-10-31T10:00:01.234Z"
+
+    QuoteItem:
+      type: object
+      required:
+        - id
+        - category
+        - name
+        - price
+        - currency
+        - updatedAt
+      properties:
+        id:
+          type: string
+        category:
+          type: string
+          enum: [currency, gold, index, stock]
+        name:
+          type: string
+        price:
+          type: number
+        buyPrice:
+          type: number
+          nullable: true
+        sellPrice:
+          type: number
+          nullable: true
+        change:
+          type: number
+          nullable: true
+        changePercent:
+          type: number
+          nullable: true
+        currency:
+          type: string
+        updatedAt:
+          type: string
+          format: date-time
+
+    ErrorResponse:
+      type: object
+      required:
+        - statusCode
+        - error
+        - message
+      properties:
+        statusCode:
+          type: integer
+          example: 400
+        error:
+          type: string
+          example: "INVALID_REQUEST"
+        message:
+          type: string
+          example: "The 'items' field must contain between 1 and 100 items."
+        details:
+          type: array
+          items:
+            type: object

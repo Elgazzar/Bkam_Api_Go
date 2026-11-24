@@ -1,0 +1,25 @@
+services:
+  api:
+    image: ghcr.io/elgazzar/bkam-api:latest
+    pull_policy: always
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: bkam-api
+    restart: always
+    ports:
+      - "3001:3001"
+    volumes:
+      - ./var:/app/var
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    networks:
+      - app-net
+
+networks:
+  app-net:
+    external: true
+    name: app-net

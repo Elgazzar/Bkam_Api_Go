@@ -1,0 +1,298 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "Bekam Fe El Bank - Latest Intraday API with Previous Close Baseline",
+    "version": "2.19.0",
+    "description": "Standardized intraday endpoints exposing top-level previous trading session closing prices alongside live quotes and tick timelines."
+  },
+  "paths": {
+    "/v1/stocks/{symbol}/intraday/latest": {
+      "get": {
+        "summary": "Retrieve latest trading session intraday points and quote with previous close for a stock",
+        "parameters": [
+          {
+            "name": "symbol",
+            "in": "path",
+            "required": true,
+            "description": "Stock ticker symbol or numeric code (e.g. COMI, 1120)",
+            "schema": { "type": "string" }
+          },
+          {
+            "name": "market",
+            "in": "query",
+            "required": false,
+            "description": "Regional stock exchange identifier ('egx', 'saudi', 'uae', 'qatar', 'kuwait')",
+            "schema": { "type": "string", "default": "egx" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Latest stock intraday envelope with previousClose",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/StockIntradayResponse" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/indices/{symbol}/intraday/latest": {
+      "get": {
+        "summary": "Retrieve latest trading session intraday points and quote with previous close for a benchmark index",
+        "parameters": [
+          {
+            "name": "symbol",
+            "in": "path",
+            "required": true,
+            "description": "Benchmark index identifier (e.g. EGX30, TASI, FADX15)",
+            "schema": { "type": "string" }
+          },
+          {
+            "name": "market",
+            "in": "query",
+            "required": false,
+            "description": "Regional index exchange identifier ('egx', 'saudi', 'uae', 'qatar')",
+            "schema": { "type": "string", "default": "egx" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Latest index intraday envelope with previousClose",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/IndexIntradayResponse" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/rates/{currency}/intraday/latest": {
+      "get": {
+        "summary": "Retrieve latest trading session intraday points and rates with previous buy/sell close for bank exchange rates",
+        "parameters": [
+          {
+            "name": "currency",
+            "in": "path",
+            "required": true,
+            "description": "Three-letter currency code (e.g. USD, EUR, SAR, CNY)",
+            "schema": { "type": "string" }
+          },
+          {
+            "name": "bank",
+            "in": "query",
+            "required": false,
+            "description": "Optional bank short code filter (e.g. cbe, cib, nbe)",
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Latest currency rate intraday envelope with previousBuyPrice and previousSellPrice",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/RateIntradayResponse" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/gold/{item}/intraday/latest": {
+      "get": {
+        "summary": "Retrieve latest trading session intraday points and quote with previous buy/sell close for a gold commodity",
+        "parameters": [
+          {
+            "name": "item",
+            "in": "path",
+            "required": true,
+            "description": "Gold commodity identifier ('24', '21', '18', 'pound', 'international', 'all')",
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Latest gold intraday envelope with previousBuyPrice and previousSellPrice",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    { "$ref": "#/components/schemas/GoldItemIntradayResponse" },
+                    { "$ref": "#/components/schemas/GoldMultiIntradayResponse" }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/gold/intraday/latest": {
+      "get": {
+        "summary": "Retrieve latest trading session intraday points for all gold commodities with previous buy/sell close",
+        "responses": {
+          "200": {
+            "description": "Multi-commodity gold intraday envelope with previousBuyPrice and previousSellPrice",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/GoldMultiIntradayResponse" }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "StockIntradayResponse": {
+        "type": "object",
+        "required": ["symbol", "date", "currency", "price", "previousClose", "change", "changePercent", "updatedAt", "intraday"],
+        "properties": {
+          "symbol": { "type": "string", "example": "COMI" },
+          "date": { "type": "string", "example": "2026-11-05" },
+          "currency": { "type": "string", "example": "EGP" },
+          "price": { "type": "number", "example": 84.5 },
+          "previousClose": { "type": "number", "example": 83.0 },
+          "change": { "type": "number", "example": 1.5 },
+          "changePercent": { "type": "number", "example": 1.81 },
+          "updatedAt": { "type": "string", "format": "date-time" },
+          "intraday": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["time", "price"],
+              "properties": {
+                "time": { "type": "string", "example": "10:30" },
+                "price": { "type": "number", "example": 84.0 }
+              }
+            }
+          }
+        }
+      },
+      "IndexIntradayResponse": {
+        "type": "object",
+        "required": ["symbol", "date", "currency", "price", "previousClose", "change", "changePercent", "updatedAt", "intraday"],
+        "properties": {
+          "symbol": { "type": "string", "example": "EGX30" },
+          "date": { "type": "string", "example": "2026-11-05" },
+          "currency": { "type": "string", "example": "EGP" },
+          "price": { "type": "number", "example": 30500.25 },
+          "previousClose": { "type": "number", "example": 30250.0 },
+          "change": { "type": "number", "example": 250.25 },
+          "changePercent": { "type": "number", "example": 0.83 },
+          "updatedAt": { "type": "string", "format": "date-time" },
+          "intraday": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["time", "price"],
+              "properties": {
+                "time": { "type": "string", "example": "11:00" },
+                "price": { "type": "number", "example": 30400.0 }
+              }
+            }
+          }
+        }
+      },
+      "RateIntradayResponse": {
+        "type": "object",
+        "required": ["currency", "date", "buy", "sell", "previousBuyPrice", "previousSellPrice", "updatedAt", "intraday"],
+        "properties": {
+          "currency": { "type": "string", "example": "USD" },
+          "bank": { "type": "string", "example": "cbe" },
+          "date": { "type": "string", "example": "2026-11-05" },
+          "buy": { "type": "number", "example": 48.65 },
+          "sell": { "type": "number", "example": 48.75 },
+          "previousBuyPrice": { "type": "number", "example": 48.6 },
+          "previousSellPrice": { "type": "number", "example": 48.7 },
+          "updatedAt": { "type": "string", "format": "date-time" },
+          "intraday": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "time": { "type": "string", "example": "12:15" },
+                "buy": { "type": "number", "example": 48.65 },
+                "sell": { "type": "number", "example": 48.75 }
+              }
+            }
+          }
+        }
+      },
+      "GoldItemIntradayResponse": {
+        "type": "object",
+        "required": ["item", "date", "currency", "buy", "sell", "previousBuyPrice", "previousSellPrice", "updatedAt", "intraday"],
+        "properties": {
+          "item": { "type": "string", "example": "21" },
+          "date": { "type": "string", "example": "2026-11-05" },
+          "currency": { "type": "string", "example": "EGP" },
+          "buy": { "type": "number", "example": 3650.0 },
+          "sell": { "type": "number", "example": 3670.0 },
+          "previousBuyPrice": { "type": "number", "example": 3630.0 },
+          "previousSellPrice": { "type": "number", "example": 3650.0 },
+          "updatedAt": { "type": "string", "format": "date-time" },
+          "intraday": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "time": { "type": "string", "example": "13:00" },
+                "buy": { "type": "number", "example": 3645.0 },
+                "sell": { "type": "number", "example": 3665.0 }
+              }
+            }
+          }
+        }
+      },
+      "GoldMultiIntradayResponse": {
+        "type": "object",
+        "required": ["date", "currency", "updatedAt", "karats", "pound", "international"],
+        "properties": {
+          "date": { "type": "string", "example": "2026-11-05" },
+          "currency": { "type": "string", "example": "EGP" },
+          "updatedAt": { "type": "string", "format": "date-time" },
+          "karats": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "object",
+              "required": ["buy", "sell", "previousBuyPrice", "previousSellPrice", "intraday"],
+              "properties": {
+                "buy": { "type": "number", "example": 3650.0 },
+                "sell": { "type": "number", "example": 3670.0 },
+                "previousBuyPrice": { "type": "number", "example": 3630.0 },
+                "previousSellPrice": { "type": "number", "example": 3650.0 },
+                "intraday": { "type": "array", "items": { "type": "object" } }
+              }
+            }
+          },
+          "pound": {
+            "type": "object",
+            "required": ["buy", "sell", "previousBuyPrice", "previousSellPrice", "intraday"],
+            "properties": {
+              "buy": { "type": "number", "example": 29200.0 },
+              "sell": { "type": "number", "example": 29360.0 },
+              "previousBuyPrice": { "type": "number", "example": 29040.0 },
+              "previousSellPrice": { "type": "number", "example": 29200.0 },
+              "intraday": { "type": "array", "items": { "type": "object" } }
+            }
+          },
+          "international": {
+            "type": "object",
+            "required": ["buy", "sell", "previousBuyPrice", "previousSellPrice", "currency", "intraday"],
+            "properties": {
+              "buy": { "type": "number", "example": 2735.5 },
+              "sell": { "type": "number", "example": 2735.5 },
+              "previousBuyPrice": { "type": "number", "example": 2720.0 },
+              "previousSellPrice": { "type": "number", "example": 2720.0 },
+              "currency": { "type": "string", "example": "USD" },
+              "intraday": { "type": "array", "items": { "type": "object" } }
+            }
+          }
+        }
+      }
+    }
+  }
+}
+
