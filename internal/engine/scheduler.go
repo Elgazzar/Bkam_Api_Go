@@ -12,7 +12,7 @@ import (
 	"github.com/robfig/cron/v3"
 )
 
-// RolloverListener defines a callback interface for re-subscribing Firestore listeners upon date rotations.
+// RolloverListener defines a callback interface for re-subscribing listeners upon date rotations.
 type RolloverListener interface {
 	// RotateWeeklyListeners signals the push streaming adapter to listen to the new active calendar week.
 	RotateWeeklyListeners(newWeekKey string)

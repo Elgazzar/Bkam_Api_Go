@@ -4,7 +4,7 @@
 *.dll
 *.so
 *.dylib
-server
+/server
 bin/
 
 # Test binary, built with `go test -c`
@@ -17,9 +17,8 @@ bin/
 vendor/
 
 # Environment variables
-.env
-.env.*
-!.env.example
+.env.local
+.env.*.local
 
 # Runtime caches and temporary directories
 .cache/

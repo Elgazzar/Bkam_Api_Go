@@ -159,6 +159,19 @@ func NewRouter(deps *RouterDependencies) *chi.Mux {
 	r.Get("/v1/indices/{code}/constituents", deps.IndicesHandler.GetConstituentStocks)
 	r.Get("/v1/indices/{market}", deps.IndicesHandler.GetMarketIndices)
 
+	// API route aliases matching /v1 endpoints
+	r.Route("/api", func(api chi.Router) {
+		api.Get("/rates", deps.RatesHandler.GetRates)
+		api.Get("/rates/{currency}", deps.RatesHandler.GetRatesByCurrency)
+		api.Get("/gold", deps.CommoditiesHandler.GetGold)
+		api.Get("/gas", deps.CommoditiesHandler.GetGas)
+		api.Get("/stocks", deps.StockHandler.GetEGXStocks)
+		api.Get("/indices", deps.IndicesHandler.GetIndices)
+		api.Get("/catalog", deps.RatesHandler.GetCatalog)
+		api.Get("/health", deps.HealthHandler.GetHealth)
+		api.Get("/version", deps.VersionHandler.GetVersion)
+	})
+
 	// Catch-all 404 handler for undefined endpoints matching API error schema.
 	r.NotFound(func(w http.ResponseWriter, req *http.Request) {
 		// Respond with 404 NOT_FOUND JSON envelope.

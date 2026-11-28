@@ -73,7 +73,7 @@ func GetISOWeekString(t time.Time) string {
 	return fmt.Sprintf("%04d-W%02d", year, week)
 }
 
-// ResolveWeeklyCollection determines the canonical Firestore weekly collection name for an asset class.
+// ResolveWeeklyCollection determines the canonical weekly collection name for an asset class.
 func (h *HistoryResolutionEngine) ResolveWeeklyCollection(assetClass, market string) string {
 	// Normalize market code.
 	m := strings.ToLower(strings.TrimSpace(market))
@@ -360,7 +360,7 @@ func (h *HistoryResolutionEngine) GetDateSnapshot(
 	}, nil
 }
 
-// GetDateRange resolves multi-day date ranges across ISO weekly buckets with zero Firestore reads.
+// GetDateRange resolves multi-day date ranges across ISO weekly buckets with zero remote database reads.
 func (h *HistoryResolutionEngine) GetDateRange(
 	assetClass string,
 	options domain.RangeOptions,

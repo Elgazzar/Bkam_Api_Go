@@ -1,13 +1,12 @@
 // Package config provides strongly-typed environment configuration management for the Bkam API Gateway.
 package config
 
-// Import standard library packages for environment variables and string handling.
 import (
-	// os provides access to operating system environment variables.
+	"bufio"
+	"fmt"
+	"net/url"
 	"os"
-	// strconv allows converting string configuration values into integers or booleans.
 	"strconv"
-	// strings provides string inspection and manipulation utilities.
 	"strings"
 )
 
@@ -25,97 +24,150 @@ type Config struct {
 	APIKey string
 	// ServerID identifies this server instance within distributed logs and response headers.
 	ServerID string
-	// ProjectID specifies the Google Cloud Firestore project identifier.
-	ProjectID string
-	// EmulatorHost optionally points to the Firestore local emulator (e.g. "127.0.0.1:8080").
-	EmulatorHost string
+
+	// DatabaseURL provides a complete PostgreSQL connection string (takes precedence).
+	DatabaseURL string
+	// DBUser specifies the PostgreSQL user account.
+	DBUser string
+	// DBPassword specifies the PostgreSQL password.
+	DBPassword string
+	// DBHost specifies the PostgreSQL host.
+	DBHost string
+	// DBPort specifies the PostgreSQL port.
+	DBPort int
+	// DBName specifies the PostgreSQL database name.
+	DBName string
+	// DBSSLMode specifies SSL mode (e.g. "disable", "require").
+	DBSSLMode string
+}
+
+// GetDatabaseConnString resolves the PostgreSQL connection URL from environment variables.
+func (c *Config) GetDatabaseConnString() string {
+	if c.DatabaseURL != "" {
+		return c.DatabaseURL
+	}
+
+	user := url.QueryEscape(c.DBUser)
+	pass := url.QueryEscape(c.DBPassword)
+
+	auth := user
+	if c.DBPassword != "" {
+		auth = fmt.Sprintf("%s:%s", user, pass)
+	}
+
+	return fmt.Sprintf("postgres://%s@%s:%d/%s?sslmode=%s",
+		auth, c.DBHost, c.DBPort, c.DBName, c.DBSSLMode)
+}
+
+// loadDotEnv parses a .env file and sets environment variables if not already set.
+func loadDotEnv(filepath string) {
+	file, err := os.Open(filepath)
+	if err != nil {
+		return
+	}
+	defer file.Close()
+
+	scanner := bufio.NewScanner(file)
+	for scanner.Scan() {
+		line := strings.TrimSpace(scanner.Text())
+		if line == "" || strings.HasPrefix(line, "#") {
+			continue
+		}
+		parts := strings.SplitN(line, "=", 2)
+		if len(parts) == 2 {
+			key := strings.TrimSpace(parts[0])
+			val := strings.TrimSpace(parts[1])
+			val = strings.Trim(val, `"'`)
+			if os.Getenv(key) == "" {
+				_ = os.Setenv(key, val)
+			}
+		}
+	}
 }
 
 // Load reads and parses all runtime configuration from environment variables with safe defaults.
 func Load() *Config {
-	// Initialize default configuration values matching platform operational expectations.
+	loadDotEnv(".env")
 	cfg := &Config{
-		// Default HTTP listening port is 3001 to maintain compatibility with existing tests.
-		Port: 3001,
-		// Default host binds to all available network interfaces.
-		Host: "0.0.0.0",
-		// Default environment is development.
+		Port:        3001,
+		Host:        "0.0.0.0",
 		Environment: "development",
-		// Default snapshot persistence directory is ./var/snapshots.
 		SnapshotDir: "./var/snapshots",
-		// Default local development API key matching test fixtures.
-		APIKey: "local-dev-key",
-		// Default server identifier for tracing and telemetry.
-		ServerID: "server-go-01",
-		// Default Google Cloud Firestore project identifier.
-		ProjectID: "bkam-api",
-		// Default emulator host is empty unless specified by the environment.
-		EmulatorHost: "",
+		APIKey:      "local-dev-key",
+		ServerID:    "server-go-01",
+
+		DatabaseURL: "",
+		DBUser:      "m7moudelgazzar",
+		DBPassword:  "",
+		DBHost:      "bkam_db",
+		DBPort:      5432,
+		DBName:      "bkam_db",
+		DBSSLMode:   "disable",
 	}
 
-	// Read PORT environment variable override if present.
 	if portStr := os.Getenv("PORT"); portStr != "" {
-		// Attempt parsing integer value from the port string.
 		if p, err := strconv.Atoi(portStr); err == nil && p > 0 {
-			// Assign valid parsed port number.
 			cfg.Port = p
 		}
 	}
 
-	// Read HOST environment variable override if present.
 	if hostStr := os.Getenv("HOST"); hostStr != "" {
-		// Assign customized host address.
 		cfg.Host = strings.TrimSpace(hostStr)
 	}
 
-	// Read NODE_ENV or ENV environment variable override.
 	if envStr := os.Getenv("NODE_ENV"); envStr != "" {
-		// Assign specified runtime environment.
 		cfg.Environment = strings.TrimSpace(envStr)
 	} else if envStr := os.Getenv("ENV"); envStr != "" {
-		// Fallback check for standard ENV variable.
 		cfg.Environment = strings.TrimSpace(envStr)
 	}
 
-	// Read SNAPSHOT_DIR environment variable override if present.
 	if snapDir := os.Getenv("SNAPSHOT_DIR"); snapDir != "" {
-		// Assign customized persistent snapshot directory path.
 		cfg.SnapshotDir = strings.TrimSpace(snapDir)
 	}
 
-	// Read API_KEY environment variable override if present.
 	if apiKey := os.Getenv("API_KEY"); apiKey != "" {
-		// Assign custom authorized API key.
 		cfg.APIKey = strings.TrimSpace(apiKey)
 	}
 
-	// Read SERVER_ID environment variable override if present.
 	if serverID := os.Getenv("SERVER_ID"); serverID != "" {
-		// Assign custom server instance identifier.
 		cfg.ServerID = strings.TrimSpace(serverID)
 	}
 
-	// Read FIRESTORE_PROJECT_ID or GOOGLE_CLOUD_PROJECT override if present.
-	if projID := os.Getenv("FIRESTORE_PROJECT_ID"); projID != "" {
-		// Assign explicit Firestore project identifier.
-		cfg.ProjectID = strings.TrimSpace(projID)
-	} else if gcpProj := os.Getenv("GOOGLE_CLOUD_PROJECT"); gcpProj != "" {
-		// Assign standard Google Cloud project identifier.
-		cfg.ProjectID = strings.TrimSpace(gcpProj)
+	// PostgreSQL Database configuration
+	if dbURL := os.Getenv("DATABASE_URL"); dbURL != "" {
+		cfg.DatabaseURL = strings.TrimSpace(dbURL)
 	}
 
-	// Read FIRESTORE_EMULATOR_HOST environment variable if running against emulator.
-	if emuHost := os.Getenv("FIRESTORE_EMULATOR_HOST"); emuHost != "" {
-		// Assign active local emulator host address.
-		cfg.EmulatorHost = strings.TrimSpace(emuHost)
+	if dbUser := os.Getenv("DB_USER"); dbUser != "" {
+		cfg.DBUser = strings.TrimSpace(dbUser)
+	}
+
+	if dbPass := os.Getenv("DB_PASSWORD"); dbPass != "" {
+		cfg.DBPassword = strings.TrimSpace(dbPass)
+	}
+
+	if dbHost := os.Getenv("DB_HOST"); dbHost != "" {
+		cfg.DBHost = strings.TrimSpace(dbHost)
+	}
+
+	if dbPortStr := os.Getenv("DB_PORT"); dbPortStr != "" {
+		if p, err := strconv.Atoi(dbPortStr); err == nil && p > 0 {
+			cfg.DBPort = p
+		}
+	}
+
+	if dbName := os.Getenv("DB_NAME"); dbName != "" {
+		cfg.DBName = strings.TrimSpace(dbName)
+	}
+
+	if sslMode := os.Getenv("DB_SSLMODE"); sslMode != "" {
+		cfg.DBSSLMode = strings.TrimSpace(sslMode)
 	}
 
 	// Ensure the snapshot directory exists on filesystem.
 	if err := os.MkdirAll(cfg.SnapshotDir, 0755); err != nil {
-		// If creation fails, ignore error for now as runtime will handle missing paths.
 		_ = err
 	}
 
-	// Return the populated and validated configuration pointer.
 	return cfg
 }

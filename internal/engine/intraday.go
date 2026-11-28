@@ -124,7 +124,7 @@ func (s *IntradayTimelineStore) GetIntraday(category, market string) (string, ma
 	return session.Date, session.PointsMap, true
 }
 
-// NormalizePoints transforms diverse Firestore point representations into a typed []domain.IntradayPoint slice.
+// NormalizePoints transforms diverse raw point representations into a typed []domain.IntradayPoint slice.
 func (s *IntradayTimelineStore) NormalizePoints(raw any) []domain.IntradayPoint {
 	// If raw is nil.
 	if raw == nil {
